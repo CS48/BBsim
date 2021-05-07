@@ -259,7 +259,7 @@ def main():
 
 # Work in progress. The actually act of simulating a game. Gonna break it down by quarters I guess.
 def play_quarter():
-
+    pass
 
 
 
