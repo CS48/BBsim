@@ -18,12 +18,12 @@ last_name_data = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "D
                   "Hall", "Young", "Allen", "Sanchez", "Wright", "King", "Scott", "Green", "Baker", "Adams", "Nelson",
                   "Hill", "Ramirez", "Campbell", "Mitchell", "Roberts"]
 class Player:
-    def __init__(self, playertype="None"):
+    def __init__(self, arg_list):
         # player info
-        self.firstname = random.choice(first_name_data)
-        self.lastname = random.choice(last_name_data)
-        self.age = random.choice(ages)
-        self.position = playertype
+        self.firstname = arg_list[0]
+        self.lastname = arg_list[1]
+        self.age = arg_list[2]
+        self.position = arg_list[3]
         # stat tracking
         self.points = 0
         self.made_shots = 0
@@ -39,15 +39,15 @@ class Player:
         # attributes generate randomly based on player type and ovr is determined by a formula that is weighted
         # differently for each position
 
-        self.inside_shot = int(numpy.random.normal(50,15, 1))
-        self.mid_shot = int(numpy.random.normal(50,15, 1))
-        self.three = int(numpy.random.normal(50,15, 1))
-        self.passing = int(numpy.random.normal(50,15, 1))
-        self.handling = int(numpy.random.normal(50,15, 1))
-        self.perimeter_d = int(numpy.random.normal(50,15, 1))
-        self.interior_d = int(numpy.random.normal(50,15, 1))
-        self.blocking = int(numpy.random.normal(50,15, 1))
-        self.stealing = int(numpy.random.normal(50,15, 1))
+        self.inside_shot = arg_list[4]
+        self.mid_shot = arg_list[5]
+        self.three = arg_list[6]
+        self.passing = arg_list[7]
+        self.handling = arg_list[8]
+        self.perimeter_d = arg_list[9]
+        self.interior_d = arg_list[10]
+        self.blocking = arg_list[11]
+        self.stealing = arg_list[12]
 
 
 def create_team_spreadsheet():
@@ -116,6 +116,41 @@ def create_team():
 
     print("Team Successfully created\n")
 
+def load_team(team_name):
+    if path.exists("Teams.xlsx"):
+
+        filename = "Teams.xlsx"
+        workbook = load_workbook(filename=filename)
+
+        if team_name in workbook.sheetnames:
+            sheet = workbook[team_name]
+            team = []
+            for x in range(2, sheet.max_row + 1):
+                for value in sheet.iter_rows(min_row=x, max_row=x, values_only=True):
+                    arg_list = list(value)
+                player = Player(arg_list)
+                team.append(player)
+            return team
+
+        else:
+            print("That team doesn't exist in the spreadsheet, try again")
+            return 1
+
+def print_team(team):
+    for x in team:
+        print(x.firstname, x.lastname)
+        print(x.position, "\n")
+
+        print("Inside Shot:", x.inside_shot)
+        print("Mid Shot:", x.mid_shot)
+        print("Three:", x.three )
+        print("Passing:", x.passing)
+        print("Handling:", x.handling)
+        print("Perimeter D:", x.perimeter_d )
+        print("Interior D:", x.interior_d)
+        print("Blocking:", x.blocking )
+        print("Stealing:", x.stealing, "\n")
+
 def delete_team():
     if path.exists("Teams.xlsx"):
         filename = "Teams.xlsx"
@@ -154,8 +189,9 @@ def main():
               "1. Generate a Team\n"
               "2. Delete a Team\n"
               "3. See Current Teams\n"
-              "4. Play a game\n"
-              "5. Exit")
+              "4. Load Teams\n"
+              "5. Play a game\n"
+              "6. Exit")
 
         selection = input("Input a number:")
         if selection == "1":
@@ -169,9 +205,20 @@ def main():
             show_teams()
             continue
         elif selection == "4":
+            print("Current Teams:")
+            show_teams()
+            s = input("Which would you like to load?:")
+            team = load_team(s)
+            if team == 1:
+                continue
+            else:
+                print_team(team)
+                print("\n")
+                continue
+        elif selection == "5":
             print("needs to be implemented\n")
             continue
-        elif selection == "5":
+        elif selection == "6":
             s = input("Are you sure (y/n):")
             if s == "y":
                 break
