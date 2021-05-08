@@ -217,10 +217,16 @@ def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awayp
 
     if awaypoints < 21 and homepoints < 21 or abs(awaypoints - homepoints) < 2:
         if home_possession:
-            shooter = random.choice(list(active_home.values()))
+            print("Home possession")
+            # randomly select a ball_handler from the list of active home players
+            ball_handler = random.choice(list(active_home.values()))
+            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, 24)
+            # look at the away defensive assignments to select the right defender
             defender = away_def_assign[shooter]
+            # call the shot function
             shot_result = shoot(shooter, defender)
 
+            # assign points based on results
             if shot_result == 2:
                 homepoints = homepoints + 2
             elif shot_result == 3:
@@ -232,10 +238,16 @@ def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awayp
 
             print("Score:", awaypoints, homepoints)
 
+            # recursively call the function again for the next possession
             return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
 
+        # Away possession
         else:
-            shooter = random.choice(list(active_away.values()))
+            print("Away possession")
+            # randomly select a ball_handler from the list of active home players
+            ball_handler = random.choice(list(active_away.values()))
+            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
+                           24)
             defender = home_def_assign[shooter]
             shot_result = shoot(shooter, defender)
 
@@ -259,6 +271,70 @@ def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awayp
         else:
             print("\nGame Over! Away Wins \nAway:%d Home:%d \n" % (awaypoints, homepoints))
             return 2
+
+# So I'm considering a pass function. It's really not necessary in a text based sim, but i think it could be cool to
+# be able to sim how the ball moves around the court. I'll have to determine how likely a pass it to happen. Maybe I'll
+# create a variable called "defensive pressure" that determines how likely a pass is to happen. def_pressure could be
+# determined by the defenders defense stats along with the ball handler's handling. It would also eventually need to
+# consider the shot clock running down. This will be cool to code up.
+
+# alright, so i'm just gonna try something here and see how it works
+def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, homepossession, shot_clock):
+    pass_chance = 0
+    if homepossession:
+        defender = away_def_assign[ball_handler]
+    else:
+        defender = home_def_assign[ball_handler]
+
+    handler_shooting_avg = (ball_handler.three + ball_handler.mid_shot + ball_handler.inside_shot) / 3
+    def_defense_avg = (defender.perimeter_d + defender.interior_d) / 2
+
+    n = abs(handler_shooting_avg - def_defense_avg)
+
+    if shot_clock <= 4:
+        print("The shot is clock is running down! Shot Clock: %d" % shot_clock)
+        return ball_handler
+
+    if handler_shooting_avg > def_defense_avg:
+        if n >= 50:
+            pass_chance = 0.20
+        elif 25 <= n < 50:
+            pass_chance = 0.40
+        else:
+            pass_chance = 0.60
+    else:
+        pass_chance = 0.75
+
+    if flip(pass_chance) == 'H':
+        if homepossession:
+            while True:
+                target = random.choice(list(active_home.values()))
+                if target == ball_handler:
+                    continue
+                else:
+                    break
+            shot_clock = shot_clock - abs(int(numpy.random.normal(5, 2, 1)))
+            print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
+                                                          ,target.lastname, shot_clock))
+            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, True, shot_clock)
+        else:
+            while True:
+                target = random.choice(list(active_away.values()))
+                if target == ball_handler:
+                    continue
+                else:
+                    break
+            shot_clock = shot_clock - abs(int(numpy.random.normal(5, 2, 1)))
+            print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
+            ,target.lastname, shot_clock))
+            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, False, shot_clock)
+    else:
+        return ball_handler
+
+
+
+        # select a team_mate besides oneself to pass to
+
 
 #outcomes of a shot attempt: made shot, missed shot, air ball out of bounds, blocked shot
 def shoot(shooter, defender):
@@ -511,6 +587,15 @@ def play():
         active_away[x] = away_team[x - 1]
         active_home[x] = home_team[x - 1]
 
+    # printing out a list to check
+    print("Away team active players\n")
+    for x in range(1,6):
+        print("%s %s" % (active_away[x].firstname, active_away[x].lastname))
+    print("\nHome team active players\n")
+    for x in range(1,6):
+        print("%s %s" % (active_home[x].firstname, active_home[x].lastname))
+
+
     # So this is just an idea, but i thought it would be cool to be able to assign defenders. So in order to do that,
     # you need to know what defender to reference whenever a certain player has the ball. I can do this by creating a
     # dict where the active players on one team are the keys and the active players on the other team are the values.
@@ -520,6 +605,13 @@ def play():
         , active_home[4]: active_away[4], active_home[5]: active_away[5]}
     home_def_assign = {active_away[1]: active_home[1], active_away[2]: active_home[2], active_away[3]: active_home[3]
         , active_away[4]: active_home[4], active_away[5]: active_home[5]}
+
+    print("Away Defensive Assignments\n")
+    for x in away_def_assign:
+        print("%s %s : %s %s\n" % (x.firstname, x.lastname, away_def_assign[x].firstname, away_def_assign[x].lastname))
+    print("Home Defensive Assignment\n")
+    for x in home_def_assign:
+        print("%s %s : %s %s\n" % (x.firstname, x.lastname, home_def_assign[x].firstname, home_def_assign[x].lastname))
 
     game_to_21(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False)
 
