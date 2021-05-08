@@ -131,7 +131,7 @@ def create_team():
     print("Team Successfully created\n")
 
 # when we need to make player objects out of excel data, this is how we do it.
-def load_team(team_name):
+def load_team():
     # first we check that the Team file exists
     if path.exists("Teams.xlsx"):
         # then we make sure we are working in it
@@ -139,25 +139,26 @@ def load_team(team_name):
         workbook = load_workbook(filename=filename)
         # we check that file to make sure that the team (given as an arg) is one of the sheets
         # within the file.
-        if team_name in workbook.sheetnames:
-            # If it exists, we select that sheet
-            sheet = workbook[team_name]
-            # this will be a list of player objects
-            team = []
-            # for each row in that sheet, which represents a player, we make a player object by
-            # putting the data from that row into a list and feeding that list into Player() as
-            # an arg. Then we put that player in the team list
-            for x in range(2, sheet.max_row + 1):
-                for value in sheet.iter_rows(min_row=x, max_row=x, values_only=True):
-                    arg_list = list(value)
-                player = Player(arg_list)
-                team.append(player)
-            # return the team, so that we can do something with it.
-            return team
-
-        else:
-            print("That team doesn't exist in the spreadsheet, try again")
-            return 1
+        while True:
+            team_name = input("Which team would you like to load?:")
+            if team_name in workbook.sheetnames:
+                # If it exists, we select that sheet
+                sheet = workbook[team_name]
+                # this will be a list of player objects
+                team = []
+                # for each row in that sheet, which represents a player, we make a player object by
+                # putting the data from that row into a list and feeding that list into Player() as
+                # an arg. Then we put that player in the team list
+                for x in range(2, sheet.max_row + 1):
+                    for value in sheet.iter_rows(min_row=x, max_row=x, values_only=True):
+                        arg_list = list(value)
+                    player = Player(arg_list)
+                    team.append(player)
+                # return the team, so that we can do something with it.
+                return team
+            else:
+                print("That team doesn't exist in the spreadsheet, try again")
+                continue
 
 # this is moreso a check than anything else. Just want to see that the player objects are
 # successfully made from the excel sheet data
@@ -222,6 +223,11 @@ def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awayp
             ball_handler = random.choice(list(active_home.values()))
             shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, 24)
             # look at the away defensive assignments to select the right defender
+            if shooter == 1:
+                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
+            else:
+                pass
+
             defender = away_def_assign[shooter]
             # call the shot function
             shot_result = shoot(shooter, defender)
@@ -248,6 +254,12 @@ def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awayp
             ball_handler = random.choice(list(active_away.values()))
             shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
                            24)
+
+            if shooter == 1:
+                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True)
+            else:
+                pass
+
             defender = home_def_assign[shooter]
             shot_result = shoot(shooter, defender)
 
@@ -291,9 +303,17 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
 
     n = abs(handler_shooting_avg - def_defense_avg)
 
-    if shot_clock <= 4:
+    if 0 < shot_clock <= 4:
         print("The shot is clock is running down! Shot Clock: %d" % shot_clock)
         return ball_handler
+    elif shot_clock < 0:
+        print("Shot clock violation! Turnover")
+        return 1
+    else:
+        pass
+
+
+
 
     if handler_shooting_avg > def_defense_avg:
         if n >= 50:
@@ -556,26 +576,12 @@ def play():
     print("Here are the teams that are available:\n")
     show_teams()
 
-    # select the away team first
-    away_team = input("Who is the away team?: ")
-    # get a valid input
-    while True:
-        if away_team in workbook.sheetnames:
-            away_team = load_team(away_team)
-            break
-        else:
-            print("That team doesn't exist, try again")
-            continue
-    # select home team second
-    home_team = input("Who is the home team?: ")
-    # get a valid input
-    while True:
-        if home_team in workbook.sheetnames:
-            home_team = load_team(home_team)
-            break
-        else:
-            print("That team doesn't exist, try again")
-            continue
+    print("Who is the away team?")
+    away_team = load_team()
+
+    print("Who is the home team?")
+    home_team = load_team()
+
 
     # I'm gonna use a dict to assign players from the team to the 5 active spots on the floor. This will be useful
     # later if you have teams of more than 5 players
@@ -643,14 +649,10 @@ def main():
         elif selection == "4":
             print("Current Teams:")
             show_teams()
-            s = input("Which would you like to load?:")
-            team = load_team(s)
-            if team == 1:
-                continue
-            else:
-                print_team(team)
-                print("\n")
-                continue
+            team = load_team()
+            print_team(team)
+            print("\n")
+            continue
         elif selection == "5":
             play()
             continue
