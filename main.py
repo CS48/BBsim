@@ -1,4 +1,4 @@
-import random, re, json, requests, numpy, openpyxl, os.path
+import random, re, json, requests, numpy, openpyxl, os.path, time
 from os import path
 from openpyxl import Workbook, load_workbook
 
@@ -336,7 +336,7 @@ def show_teams():
 # consider the shot clock running down. This will be cool to code up.
 
 # alright, so i'm just gonna try something here and see how it works
-def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, homepossession, shot_clock):
+def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, homepossession, shot_clock, time_remaining):
     pass_chance = 0
     if homepossession:
         defender = away_def_assign[ball_handler]
@@ -350,10 +350,12 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
 
     if 0 < shot_clock <= 4:
         print("The shot is clock is running down! Shot Clock: %d" % shot_clock)
-        return ball_handler
+        time_remaining = time_remaining - (24 - shot_clock)
+        return ball_handler, time_remaining
     elif shot_clock < 0:
-        print("Shot clock violation! Turnover")
-        return 1
+        time_remaining = time_remaining - 24
+        print("Shot clock violation! Turnover\n")
+        return 1, time_remaining
     else:
         pass
 
@@ -381,7 +383,7 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
             shot_clock = shot_clock - abs(int(numpy.random.normal(5, 2, 1)))
             print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
                                                           ,target.lastname, shot_clock))
-            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, True, shot_clock)
+            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, True, shot_clock, time_remaining)
         else:
             while True:
                 target = random.choice(list(active_away.values()))
@@ -392,9 +394,10 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
             shot_clock = shot_clock - abs(int(numpy.random.normal(5, 2, 1)))
             print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
             ,target.lastname, shot_clock))
-            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, False, shot_clock)
+            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, False, shot_clock, time_remaining)
     else:
-        return ball_handler
+        time_remaining = time_remaining - (24 - shot_clock)
+        return ball_handler, time_remaining
 
 
 
@@ -604,23 +607,36 @@ def shot_succ_prob(shot_score, def_score):
     return success_prob
 
 
-def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, home_possession):
+def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, home_possession, time_remaining, slow):
+    #time.sleep(1)
+    time_remaining = time_remaining - abs(int(numpy.random.normal(3, 1, 1)))
 
-    if awaypoints < 21 and homepoints < 21 or abs(awaypoints - homepoints) < 2:
+    if time_remaining > 0:
+        # convert the seconds to minutes format
+        mins, sec = divmod(time_remaining, 60)
+        print("Time:  %d:%d" % (mins, sec))
+
         if home_possession:
             print("Home possession")
             # randomly select a ball_handler from the list of active home players
             ball_handler = random.choice(list(active_home.values()))
-            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, 24)
+
+            # if the time left is less than 25, then turn off the shot clock
+            if time_remaining < 25:
+                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, time_remaining, time_remaining)
+            else:
+                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign,
+                                   home_possession, 24, time_remaining)
+            time_remaining = pass_result[1]
             # look at the away defensive assignments to select the right defender
-            if shooter == 1:
-                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
+            if pass_result[0] == 1:
+                return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False, time_remaining, slow)
             else:
                 pass
 
-            defender = away_def_assign[shooter]
+            defender = away_def_assign[pass_result[0]]
             # call the shot function
-            shot_result = shoot(shooter, defender)
+            shot_result = shoot(pass_result[0], defender)
 
             # assign points based on results
             if shot_result == 2:
@@ -635,23 +651,28 @@ def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awayp
             print("\nScore:", awaypoints, homepoints, "\n")
 
             # recursively call the function again for the next possession
-            return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
+            return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False, time_remaining, slow)
 
         # Away possession
         else:
             print("Away possession")
             # randomly select a ball_handler from the list of active home players
             ball_handler = random.choice(list(active_away.values()))
-            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
-                           24)
-
-            if shooter == 1:
-                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True)
+            if time_remaining < 25:
+                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign,
+                                   home_possession,
+                                   time_remaining, time_remaining)
+            else:
+                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
+                               24, time_remaining)
+            time_remaining = pass_result[1]
+            if pass_result[0] == 1:
+                return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True, time_remaining, slow)
             else:
                 pass
 
-            defender = home_def_assign[shooter]
-            shot_result = shoot(shooter, defender)
+            defender = home_def_assign[pass_result[0]]
+            shot_result = shoot(pass_result[0], defender)
 
             if shot_result == 2:
                 awaypoints = awaypoints + 2
@@ -664,19 +685,14 @@ def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awayp
 
             print("\nScore:", awaypoints, homepoints, "\n")
 
-            return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True)
+            return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True, time_remaining, slow)
 
     else:
-        if homepoints > awaypoints:
-            print("\nGame Over! Home Wins \nAway:%d Home:%d \n" % (awaypoints, homepoints))
-            return 2
-        else:
-            print("\nGame Over! Away Wins \nAway:%d Home:%d \n" % (awaypoints, homepoints))
-            return 1
+        return awaypoints, homepoints
 
 
 # Work in progress. The actually act of simulating a game. Gonna break it down by quarters I guess.
-def play():
+def play(slow=None):
     # make sure there is a teams file before we do anything
     if path.exists("Teams.xlsx"):
         pass
@@ -739,7 +755,51 @@ def play():
     for x in home_def_assign:
         print("%s %s : %s %s\n" % (x.firstname, x.lastname, home_def_assign[x].firstname, home_def_assign[x].lastname))
 
-    game_result = game_to_21(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False)
+    #1st quarter
+    print("\nBeginning of 1st Quarter\n")
+    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False, 720, slow)
+    print("\nEnd of 1st Quarter")
+    print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
+    #2nd quarter
+    #time.sleep(2)
+
+    print("\nBeginning of 2nd Quarter\n")
+    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0], quarter_result[1], False, 720, slow)
+    print("\nEnd of 2nd Quarter")
+    print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
+
+    #3rd quarter
+    #time.sleep(2)
+    print("\nBeginning of 3rd Quarter\n")
+    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0],
+                                  quarter_result[1], False, 720, slow)
+    print("\nEnd of 3rd Quarter")
+    print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
+
+    #4th quarter
+    #time.sleep(2)
+    print("\nBeginning of 4th Quarter\n")
+    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0],
+                                  quarter_result[1], False, 720, slow)
+    print("\nEnd of 4th Quarter")
+    print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
+
+    while True:
+        #time.sleep(2)
+        overtime_no = 1
+        if quarter_result[0] == quarter_result[1]:
+            print("\nBeginning of OT%d\n" % overtime_no)
+            quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0],
+                                          quarter_result[1], False, 720, slow)
+            continue
+        else:
+            break
+
+
+    if quarter_result[0] > quarter_result[1]:
+        print("\n%s wins\n" %away_name)
+    else:
+        print("\n%s wins\n" %home_name)
 
     # log game result in the team_results file
     # first we need to give the game an id
@@ -755,12 +815,10 @@ def play():
     x = awayteam_sheet.max_row + 1
     awayteam_sheet["A%d" % x] = new_id
     awayteam_sheet["B%d" % x] = home_name
-    if game_result == 1:
+    if quarter_result[0] > quarter_result[1]:
         awayteam_sheet["C%d" % x] = "W"
-    elif game_result == 2:
-        awayteam_sheet["C%d" % x] = "L"
     else:
-        print("problem with determining away W or L")
+        awayteam_sheet["C%d" % x] = "L"
     workbook.save(filename=filename)
 
     # updating team results sheet for home team
@@ -768,12 +826,10 @@ def play():
     x = hometeam_sheet.max_row + 1
     hometeam_sheet["A%d" % x] = new_id
     hometeam_sheet["B%d" % x] = away_name
-    if game_result == 1:
+    if quarter_result[0] > quarter_result[1]:
         hometeam_sheet["C%d" % x] = "L"
-    elif game_result == 2:
-        hometeam_sheet["C%d" % x] = "W"
     else:
-        print("problem with determining home W or L")
+        hometeam_sheet["C%d" % x] = "W"
     workbook.save(filename=filename)
 
 
