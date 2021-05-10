@@ -31,6 +31,13 @@ def serialize_playerids_json(list):
     with open(os.path.join(filepath, file), 'w') as outfile:
         json.dump(list, outfile)
 
+def serialize_gameids_json(list):
+    # opening the file in w mode should delete the data, so i don't have to worry about manually overwriting.
+    file = 'game_ids.txt'
+    filepath = os.path.abspath(os.getcwd())
+    with open(os.path.join(filepath, file), 'w') as outfile:
+        json.dump(list, outfile)
+
 def deserialize_playerids_json():
     file = 'player_ids.txt'
     filepath = os.path.abspath(os.getcwd())
@@ -41,7 +48,17 @@ def deserialize_playerids_json():
     else:
         print("No player id txt file.")
 
-def generate_playerid(list):
+def deserialize_gameids_json():
+    file = 'game_ids.txt'
+    filepath = os.path.abspath(os.getcwd())
+    if path.exists(os.path.join(filepath, file)):
+        with open(os.path.join(filepath, file)) as json_file:
+            data = json.load(json_file)
+        return list(data)
+    else:
+        print("No game id txt file.")
+
+def generate_id(list):
     if list is None:
         id = random.randint(1, 1000)
         return id
@@ -55,7 +72,7 @@ def generate_playerid(list):
         else:
             return id
 
-def append_playerid(id, list):
+def append_id(id, list):
     if list is None:
         list = [id]
         return list
@@ -63,13 +80,13 @@ def append_playerid(id, list):
         list.append(id)
         return list
 
-def delete_playerid(id, list):
+def delete_id(id, list):
     if id in list:
         delete_this = list.index(id)
         del list[delete_this]
         return list
     else:
-        print("Couldn't find player id")
+        print("Couldn't find id")
 
 # the player class that we will use to build player objects from excel sheet data.
 # it also contains some stats for tracking over the course of a game.
@@ -162,8 +179,8 @@ def create_team():
         # create_playerids_txt()
         print("hi")
         playerids = deserialize_playerids_json()
-        new_id = generate_playerid(playerids)
-        updated_list = append_playerid(new_id, playerids)
+        new_id = generate_id(playerids)
+        updated_list = append_id(new_id, playerids)
         serialize_playerids_json(updated_list)
 
         team_sheet["A%d" % row] = new_id
@@ -230,7 +247,7 @@ def load_team():
                     player = Player(arg_list)
                     team.append(player)
                 # return the team, so that we can do something with it.
-                return team
+                return team, team_name
             else:
                 print("That team doesn't exist in the spreadsheet, try again")
                 continue
@@ -278,7 +295,7 @@ def delete_team():
                 print(ids_to_delete)
                 print(id_list)
                 for x in ids_to_delete:
-                    id_list = delete_playerid(x, id_list)
+                    id_list = delete_id(x, id_list)
                 serialize_playerids_json(id_list)
 
                 workbook.remove(workbook[team_name])
@@ -532,55 +549,55 @@ def shoot(shooter, defender):
 def shot_succ_prob(shot_score, def_score):
 
     if shot_score == 0 and def_score == 0:
-        success_prob = 0.25
+        success_prob = 0.30
     elif shot_score == 0 and def_score == 1:
-        success_prob = 0.20
+        success_prob = 0.25
     elif shot_score == 0 and def_score == 2:
-        success_prob = 0.15
+        success_prob = 0.20
     elif shot_score == 0 and def_score == 3:
-        success_prob = 0.10
+        success_prob = 0.15
     elif shot_score == 0 and def_score == 4:
-        success_prob = 0.05
-    elif shot_score == 1 and def_score == 0:
-        success_prob = 0.30
-    elif shot_score == 1 and def_score == 1:
-        success_prob = 0.25
-    elif shot_score == 1 and def_score == 2:
-        success_prob = 0.20
-    elif shot_score == 1 and def_score == 3:
-        success_prob = 0.15
-    elif shot_score == 1 and def_score == 4:
         success_prob = 0.10
-    elif shot_score == 2 and def_score == 0:
+    elif shot_score == 1 and def_score == 0:
         success_prob = 0.35
-    elif shot_score == 2 and def_score == 1:
+    elif shot_score == 1 and def_score == 1:
         success_prob = 0.30
-    elif shot_score == 2 and def_score == 2:
+    elif shot_score == 1 and def_score == 2:
         success_prob = 0.25
-    elif shot_score == 2 and def_score == 3:
+    elif shot_score == 1 and def_score == 3:
         success_prob = 0.20
-    elif shot_score == 2 and def_score == 4:
+    elif shot_score == 1 and def_score == 4:
         success_prob = 0.15
-    elif shot_score == 3 and def_score == 0:
+    elif shot_score == 2 and def_score == 0:
         success_prob = 0.40
-    elif shot_score == 3 and def_score == 1:
+    elif shot_score == 2 and def_score == 1:
         success_prob = 0.35
-    elif shot_score == 3 and def_score == 2:
+    elif shot_score == 2 and def_score == 2:
         success_prob = 0.30
-    elif shot_score == 3 and def_score == 3:
+    elif shot_score == 2 and def_score == 3:
         success_prob = 0.25
-    elif shot_score == 3 and def_score == 4:
+    elif shot_score == 2 and def_score == 4:
         success_prob = 0.20
+    elif shot_score == 3 and def_score == 0:
+        success_prob = 0.45
+    elif shot_score == 3 and def_score == 1:
+        success_prob = 0.40
+    elif shot_score == 3 and def_score == 2:
+        success_prob = 0.35
+    elif shot_score == 3 and def_score == 3:
+        success_prob = 0.30
+    elif shot_score == 3 and def_score == 4:
+        success_prob = 0.25
     elif shot_score == 4 and def_score == 0:
-        success_prob = 0.50
+        success_prob = 0.60
     elif shot_score == 4 and def_score == 1:
-        success_prob = 0.46
+        success_prob = 0.55
     elif shot_score == 4 and def_score == 2:
-        success_prob = 0.42
+        success_prob = 0.50
     elif shot_score == 4 and def_score == 3:
-        success_prob = 0.38
+        success_prob = 0.45
     elif shot_score == 4 and def_score == 4:
-        success_prob = 0.32
+        success_prob = 0.40
     else:
         print("problem with success prob")
 
@@ -676,10 +693,14 @@ def play():
     show_teams()
 
     print("Who is the away team?")
-    away_team = load_team()
+    result = load_team()
+    away_team = result[0]
+    away_name = result[1]
 
     print("Who is the home team?")
-    home_team = load_team()
+    result = load_team()
+    home_team = result[0]
+    home_name = result[1]
 
 
     # I'm gonna use a dict to assign players from the team to the 5 active spots on the floor. This will be useful
@@ -718,7 +739,43 @@ def play():
     for x in home_def_assign:
         print("%s %s : %s %s\n" % (x.firstname, x.lastname, home_def_assign[x].firstname, home_def_assign[x].lastname))
 
-    result = game_to_21(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False)
+    game_result = game_to_21(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False)
+
+    # log game result in the team_results file
+    # first we need to give the game an id
+    game_ids = deserialize_gameids_json()
+    new_id = generate_id(game_ids)
+    updated_list = append_id(new_id, game_ids)
+    serialize_gameids_json(updated_list)
+
+    # updating team results sheet for away team
+    filename = "Team_results.xlsx"
+    workbook = load_workbook(filename=filename)
+    awayteam_sheet = workbook[away_name]
+    x = awayteam_sheet.max_row + 1
+    awayteam_sheet["A%d" % x] = new_id
+    awayteam_sheet["B%d" % x] = home_name
+    if game_result == 1:
+        awayteam_sheet["C%d" % x] = "W"
+    elif game_result == 2:
+        awayteam_sheet["C%d" % x] = "L"
+    else:
+        print("problem with determining away W or L")
+    workbook.save(filename=filename)
+
+    # updating team results sheet for home team
+    hometeam_sheet = workbook[home_name]
+    x = hometeam_sheet.max_row + 1
+    hometeam_sheet["A%d" % x] = new_id
+    hometeam_sheet["B%d" % x] = away_name
+    if game_result == 1:
+        hometeam_sheet["C%d" % x] = "L"
+    elif game_result == 2:
+        hometeam_sheet["C%d" % x] = "W"
+    else:
+        print("problem with determining home W or L")
+    workbook.save(filename=filename)
+
 
 
     # This section for saving stats in a game xlsx
