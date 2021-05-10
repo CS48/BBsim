@@ -23,15 +23,65 @@ last_name_data = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "D
 def flip(p):
     return 'H' if random.random() < p else 'T'
 
+
+def serialize_playerids_json(list):
+    # opening the file in w mode should delete the data, so i don't have to worry about manually overwriting.
+    file = 'player_ids.txt'
+    filepath = os.path.abspath(os.getcwd())
+    with open(os.path.join(filepath, file), 'w') as outfile:
+        json.dump(list, outfile)
+
+def deserialize_playerids_json():
+    file = 'player_ids.txt'
+    filepath = os.path.abspath(os.getcwd())
+    if path.exists(os.path.join(filepath, file)):
+        with open(os.path.join(filepath, file)) as json_file:
+            data = json.load(json_file)
+        return list(data)
+    else:
+        print("No player id txt file.")
+
+def generate_playerid(list):
+    if list is None:
+        id = random.randint(1, 1000)
+        return id
+    else:
+        pass
+
+    while True:
+        id = random.randint(1, 1000)
+        if id in list:
+            continue
+        else:
+            return id
+
+def append_playerid(id, list):
+    if list is None:
+        list = [id]
+        return list
+    else:
+        list.append(id)
+        return list
+
+def delete_playerid(id, list):
+    if id in list:
+        delete_this = list.index(id)
+        del list[delete_this]
+        return list
+    else:
+        print("Couldn't find player id")
+
 # the player class that we will use to build player objects from excel sheet data.
 # it also contains some stats for tracking over the course of a game.
 class Player:
     def __init__(self, arg_list):
         # player info
-        self.firstname = arg_list[0]
-        self.lastname = arg_list[1]
-        self.age = arg_list[2]
-        self.position = arg_list[3]
+
+        self.player_id = arg_list[0]
+        self.firstname = arg_list[1]
+        self.lastname = arg_list[2]
+        self.age = arg_list[3]
+        self.position = arg_list[4]
         # stat tracking
         self.points = 0
         self.made_shots = 0
@@ -47,20 +97,17 @@ class Player:
         # attributes generate randomly based on player type and ovr is determined by a formula that is weighted
         # differently for each position
 
-        self.inside_shot = arg_list[4]
-        self.mid_shot = arg_list[5]
-        self.three = arg_list[6]
-        self.passing = arg_list[7]
-        self.handling = arg_list[8]
-        self.perimeter_d = arg_list[9]
-        self.interior_d = arg_list[10]
-        self.blocking = arg_list[11]
-        self.stealing = arg_list[12]
+        self.inside_shot = arg_list[5]
+        self.mid_shot = arg_list[6]
+        self.three = arg_list[7]
+        self.passing = arg_list[8]
+        self.handling = arg_list[9]
+        self.perimeter_d = arg_list[10]
+        self.interior_d = arg_list[11]
+        self.blocking = arg_list[12]
+        self.stealing = arg_list[13]
 
-# this creates a xlsx file in the same directory as main.py. I have it set to be named "Teams" by default
-def create_team_spreadsheet():
-    workbook = Workbook()
-    workbook.save(filename="Teams.xlsx")
+
 
 # creates a new sheet in the Teams spreadsheet and generates some random players for that team by entering
 # data into the cells. This spreadsheet will later be read to create player objects for simming
@@ -69,7 +116,8 @@ def create_team():
     if path.exists("Teams.xlsx"):
         pass
     else:
-        create_team_spreadsheet()
+        workbook = Workbook()
+        workbook.save(filename="Teams.xlsx")
 
     # makes sure that we are working in the Teams file
     filename = "Teams.xlsx"
@@ -92,29 +140,37 @@ def create_team():
     team_sheet = workbook.create_sheet(team_name)
 
     # format sheet
-    team_sheet["A1"] = "first_name"
-    team_sheet["B1"] = "last_name"
-    team_sheet["C1"] = "age"
-    team_sheet["D1"] = "position"
-    team_sheet["E1"] = "inside_shot"
-    team_sheet["F1"] = "mid_shot"
-    team_sheet["G1"] = "three"
-    team_sheet["H1"] = "passing"
-    team_sheet["I1"] = "handling"
-    team_sheet["J1"] = "perimeter_d"
-    team_sheet["K1"] = "interior_d"
-    team_sheet["L1"] = "blocking"
-    team_sheet["M1"] = "stealing"
-
+    team_sheet["A1"] = "player_id"
+    team_sheet["B1"] = "first_name"
+    team_sheet["C1"] = "last_name"
+    team_sheet["D1"] = "age"
+    team_sheet["E1"] = "position"
+    team_sheet["F1"] = "inside_shot"
+    team_sheet["G1"] = "mid_shot"
+    team_sheet["H1"] = "three"
+    team_sheet["I1"] = "passing"
+    team_sheet["J1"] = "handling"
+    team_sheet["K1"] = "perimeter_d"
+    team_sheet["L1"] = "interior_d"
+    team_sheet["M1"] = "blocking"
+    team_sheet["N1"] = "stealing"
 
     # generates 5 players (one for every position) with random ratings
     for x in range(0, len(positions)):
         row = x+2
-        team_sheet["A%d" % row] = random.choice(first_name_data)
-        team_sheet["B%d" % row] = random.choice(last_name_data)
-        team_sheet["C%d" % row] = random.choice(ages)
-        team_sheet["D%d" % row] = positions[x]
-        team_sheet["E%d" % row] = int(numpy.random.normal(50,15, 1))
+
+        # create_playerids_txt()
+        print("hi")
+        playerids = deserialize_playerids_json()
+        new_id = generate_playerid(playerids)
+        updated_list = append_playerid(new_id, playerids)
+        serialize_playerids_json(updated_list)
+
+        team_sheet["A%d" % row] = new_id
+        team_sheet["B%d" % row] = random.choice(first_name_data)
+        team_sheet["C%d" % row] = random.choice(last_name_data)
+        team_sheet["D%d" % row] = random.choice(ages)
+        team_sheet["E%d" % row] = positions[x]
         team_sheet["F%d" % row] = int(numpy.random.normal(50,15, 1))
         team_sheet["G%d" % row] = int(numpy.random.normal(50,15, 1))
         team_sheet["H%d" % row] = int(numpy.random.normal(50,15, 1))
@@ -123,8 +179,27 @@ def create_team():
         team_sheet["K%d" % row] = int(numpy.random.normal(50,15, 1))
         team_sheet["L%d" % row] = int(numpy.random.normal(50,15, 1))
         team_sheet["M%d" % row] = int(numpy.random.normal(50,15, 1))
+        team_sheet["N%d" % row] = int(numpy.random.normal(50,15, 1))
 
     # saves the file, very important
+    workbook.save(filename=filename)
+
+    # Now we will to create a team records sheet to store the team's wins and losses
+    if path.exists("Team_results.xlsx"):
+        pass
+    else:
+        workbook = Workbook()
+        workbook.save(filename="Team_results.xlsx")
+
+    # I want to name the file "Team_results" and the sheet will be the name of the team.
+    filename = "Team_results.xlsx"
+    workbook = load_workbook(filename=filename)
+    result_sheet = workbook.create_sheet(team_name)
+
+    result_sheet["A1"] = "game_id"
+    result_sheet["B1"] = "opponent"
+    result_sheet["C1"] = "result"
+
     workbook.save(filename=filename)
 
     # feedback is good design ;)
@@ -187,10 +262,25 @@ def delete_team():
         # Show a list of the current sheets (Teams)
         print("Here are the current teams...")
         print(workbook.sheetnames, "\n")
+
+
         while True:
             # enter the name of a team to delete it
             team_name = input("Enter team name to delete:")
             if team_name in workbook.sheetnames:
+
+                # this should update the id list to make sure that it is cleared of the deleted players
+                sheet = workbook[team_name]
+                ids_to_delete = []
+                for x in range(2, sheet.max_row + 1):
+                    ids_to_delete.append(sheet["A%d" % x].value)
+                id_list = deserialize_playerids_json()
+                print(ids_to_delete)
+                print(id_list)
+                for x in ids_to_delete:
+                    id_list = delete_playerid(x, id_list)
+                serialize_playerids_json(id_list)
+
                 workbook.remove(workbook[team_name])
                 break
             else:
@@ -198,6 +288,14 @@ def delete_team():
                 continue
         # save after it's done
         workbook.save(filename=filename)
+
+        if path.exists("Team_results.xlsx"):
+            filename = "Team_results.xlsx"
+            workbook = load_workbook(filename=filename)
+            workbook.remove(workbook[team_name])
+
+            workbook.save(filename=filename)
+
         # feedback is good design
         print("%s has been deleted." % team_name)
     else:
@@ -213,76 +311,6 @@ def show_teams():
     else:
         print("No teams exist currently.\n")
 
-
-def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, home_possession):
-
-    if awaypoints < 21 and homepoints < 21 or abs(awaypoints - homepoints) < 2:
-        if home_possession:
-            print("Home possession")
-            # randomly select a ball_handler from the list of active home players
-            ball_handler = random.choice(list(active_home.values()))
-            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, 24)
-            # look at the away defensive assignments to select the right defender
-            if shooter == 1:
-                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
-            else:
-                pass
-
-            defender = away_def_assign[shooter]
-            # call the shot function
-            shot_result = shoot(shooter, defender)
-
-            # assign points based on results
-            if shot_result == 2:
-                homepoints = homepoints + 2
-            elif shot_result == 3:
-                homepoints = homepoints + 3
-            elif shot_result == 0:
-                pass
-            else:
-                print("problem with points")
-
-            print("Score:", awaypoints, homepoints)
-
-            # recursively call the function again for the next possession
-            return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
-
-        # Away possession
-        else:
-            print("Away possession")
-            # randomly select a ball_handler from the list of active home players
-            ball_handler = random.choice(list(active_away.values()))
-            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
-                           24)
-
-            if shooter == 1:
-                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True)
-            else:
-                pass
-
-            defender = home_def_assign[shooter]
-            shot_result = shoot(shooter, defender)
-
-            if shot_result == 2:
-                awaypoints = awaypoints + 2
-            elif shot_result == 3:
-                awaypoints = awaypoints + 3
-            elif shot_result == 0:
-                pass
-            else:
-                print("problem with points")
-
-            print("Score:", awaypoints, homepoints)
-
-            return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True)
-
-    else:
-        if homepoints > awaypoints:
-            print("\nGame Over! Home Wins \nAway:%d Home:%d \n" % (awaypoints, homepoints))
-            return 1
-        else:
-            print("\nGame Over! Away Wins \nAway:%d Home:%d \n" % (awaypoints, homepoints))
-            return 2
 
 # So I'm considering a pass function. It's really not necessary in a text based sim, but i think it could be cool to
 # be able to sim how the ball moves around the court. I'll have to determine how likely a pass it to happen. Maybe I'll
@@ -559,6 +587,77 @@ def shot_succ_prob(shot_score, def_score):
     return success_prob
 
 
+def game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, home_possession):
+
+    if awaypoints < 21 and homepoints < 21 or abs(awaypoints - homepoints) < 2:
+        if home_possession:
+            print("Home possession")
+            # randomly select a ball_handler from the list of active home players
+            ball_handler = random.choice(list(active_home.values()))
+            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, 24)
+            # look at the away defensive assignments to select the right defender
+            if shooter == 1:
+                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
+            else:
+                pass
+
+            defender = away_def_assign[shooter]
+            # call the shot function
+            shot_result = shoot(shooter, defender)
+
+            # assign points based on results
+            if shot_result == 2:
+                homepoints = homepoints + 2
+            elif shot_result == 3:
+                homepoints = homepoints + 3
+            elif shot_result == 0:
+                pass
+            else:
+                print("problem with points")
+
+            print("\nScore:", awaypoints, homepoints, "\n")
+
+            # recursively call the function again for the next possession
+            return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False)
+
+        # Away possession
+        else:
+            print("Away possession")
+            # randomly select a ball_handler from the list of active home players
+            ball_handler = random.choice(list(active_away.values()))
+            shooter = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
+                           24)
+
+            if shooter == 1:
+                return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True)
+            else:
+                pass
+
+            defender = home_def_assign[shooter]
+            shot_result = shoot(shooter, defender)
+
+            if shot_result == 2:
+                awaypoints = awaypoints + 2
+            elif shot_result == 3:
+                awaypoints = awaypoints + 3
+            elif shot_result == 0:
+                pass
+            else:
+                print("problem with points")
+
+            print("\nScore:", awaypoints, homepoints, "\n")
+
+            return game_to_21(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True)
+
+    else:
+        if homepoints > awaypoints:
+            print("\nGame Over! Home Wins \nAway:%d Home:%d \n" % (awaypoints, homepoints))
+            return 2
+        else:
+            print("\nGame Over! Away Wins \nAway:%d Home:%d \n" % (awaypoints, homepoints))
+            return 1
+
+
 # Work in progress. The actually act of simulating a game. Gonna break it down by quarters I guess.
 def play():
     # make sure there is a teams file before we do anything
@@ -619,7 +718,18 @@ def play():
     for x in home_def_assign:
         print("%s %s : %s %s\n" % (x.firstname, x.lastname, home_def_assign[x].firstname, home_def_assign[x].lastname))
 
-    game_to_21(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False)
+    result = game_to_21(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False)
+
+
+    # This section for saving stats in a game xlsx
+    #if not path.exists('Game_stats.xlsx'):
+       # workbook = Workbook()
+        #workbook.save(filename="Game_stats.xlsx")
+    #else:
+     #   pass
+    # makes sure that we are working in the Game_stats file
+    #filename = "Game_stats.xlsx"
+    #workbook = load_workbook(filename=filename)
 
 
 def main():
