@@ -1,4 +1,4 @@
-import random, re, json, requests, numpy, openpyxl, os.path, time
+import random, json, numpy, os.path, time
 from os import path
 from openpyxl import Workbook, load_workbook
 
@@ -123,6 +123,7 @@ class Player:
         self.interior_d = arg_list[11]
         self.blocking = arg_list[12]
         self.stealing = arg_list[13]
+        self.rebounding = arg_list[14]
 
 
 
@@ -171,6 +172,7 @@ def create_team():
     team_sheet["L1"] = "interior_d"
     team_sheet["M1"] = "blocking"
     team_sheet["N1"] = "stealing"
+    team_sheet["O1"] = "rebounding"
 
     # generates 5 players (one for every position) with random ratings
     for x in range(0, len(positions)):
@@ -197,6 +199,8 @@ def create_team():
         team_sheet["L%d" % row] = int(numpy.random.normal(50,15, 1))
         team_sheet["M%d" % row] = int(numpy.random.normal(50,15, 1))
         team_sheet["N%d" % row] = int(numpy.random.normal(50,15, 1))
+        team_sheet["O%d" % row] = int(numpy.random.normal(50, 15, 1))
+
 
     # saves the file, very important
     workbook.save(filename=filename)
@@ -267,7 +271,8 @@ def print_team(team):
         print("Perimeter D:", x.perimeter_d )
         print("Interior D:", x.interior_d)
         print("Blocking:", x.blocking )
-        print("Stealing:", x.stealing, "\n")
+        print("Stealing:", x.stealing)
+        print("Rebounding:", x.rebounding, "\n")
 
 # This will delete a sheet of data (effectively a team) from the Team file
 def delete_team():
@@ -338,6 +343,7 @@ def show_teams():
 # alright, so i'm just gonna try something here and see how it works
 def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, homepossession, shot_clock, time_remaining):
     pass_chance = 0
+    passer = ball_handler
     if homepossession:
         defender = away_def_assign[ball_handler]
     else:
@@ -351,11 +357,11 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
     if 0 < shot_clock <= 4:
         print("The shot is clock is running down! Shot Clock: %d" % shot_clock)
         time_remaining = time_remaining - (24 - shot_clock)
-        return ball_handler, time_remaining
+        return ball_handler, passer, time_remaining
     elif shot_clock < 0:
         time_remaining = time_remaining - 24
         print("Shot clock violation! Turnover\n")
-        return 1, time_remaining
+        return 1, None, time_remaining
     else:
         pass
 
@@ -397,15 +403,70 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
             return Pass(target, active_away, active_home, away_def_assign, home_def_assign, False, shot_clock, time_remaining)
     else:
         time_remaining = time_remaining - (24 - shot_clock)
-        return ball_handler, time_remaining
+        return ball_handler, passer, time_remaining
 
 
 
         # select a team_mate besides oneself to pass to
 
+def rebound(shooter, active_away, active_home, homepossession):
+    away_rebounders = []
+    home_rebounders = []
+    for key in active_away:
+        away_rebounders.append(active_away[key])
+    for key in active_home:
+        home_rebounders.append(active_home[key])
+
+
+    # organize the away players from lowest rebounding to highest.
+    for x in range(1, len(away_rebounders)):
+        current_player = away_rebounders[x]
+        current_value = away_rebounders[x].rebounding
+        current_pos = x
+
+        while current_pos > 0 and away_rebounders[current_pos - 1].rebounding > current_value:
+            away_rebounders[current_pos] = away_rebounders[current_pos - 1]
+            current_pos = current_pos - 1
+
+        away_rebounders[current_pos] = current_player
+
+    for x in range(1, len(home_rebounders)):
+        current_player = home_rebounders[x]
+        current_value = home_rebounders[x].rebounding
+        current_pos = x
+
+        while current_pos > 0 and home_rebounders[current_pos - 1].rebounding > current_value:
+            home_rebounders[current_pos] = home_rebounders[current_pos - 1]
+            current_pos = current_pos - 1
+
+        home_rebounders[current_pos] = current_player
+
+
+    if homepossession:
+        if flip(0.25) == 'H':
+            # offensive rebound
+            rebounder = target = random.choices(home_rebounders, weights=(10, 10, 20, 25, 25), k=1)
+            rebounder = rebounder[0]
+            return rebounder, True
+        else:
+            #defensive rebound
+            rebounder = target = random.choices(away_rebounders, weights=(10, 10, 20, 25, 25), k=1)
+            rebounder = rebounder[0]
+            return rebounder, False
+    else:
+        if flip(0.25) == 'H':
+            # offensive rebound
+            rebounder = target = random.choices(away_rebounders, weights=(10, 10, 20, 25, 25), k=1)
+            rebounder = rebounder[0]
+            return rebounder, False
+        else:
+            # defensive rebound
+            rebounder = target = random.choices(home_rebounders, weights=(10, 10, 20, 25, 25), k=1)
+            rebounder = rebounder[0]
+            return rebounder, True
 
 #outcomes of a shot attempt: made shot, missed shot, air ball out of bounds, blocked shot
-def shoot(shooter, defender):
+def shoot(shooter, defender, passer):
     shot_score = 0
     def_score = 0
 
@@ -431,6 +492,9 @@ def shoot(shooter, defender):
     # shooting stat (0 = awful, 1 = bad, 2 = average, 3 = good, 4 = great). The same
     # is done for the defender. Then we determine the chance of the shooter
     # making the shot based off of that comparison.
+
+    # stat track: add to shooter's shot attempts
+    shooter.shot_attempts = shooter.shot_attempts + 1
 
     # determining shooter category
     # inside shot
@@ -496,6 +560,8 @@ def shoot(shooter, defender):
             print("shot_score error: stat not between 0 and 100")
     # three
     elif shot[0] == 3:
+        # stat track: add to shooters three attempts
+        shooter.three_attempts = shooter.three_attempts + 1
         # output for console
         print("%s %s shoots from three" % (shooter.firstname, shooter.lastname))
 
@@ -531,14 +597,30 @@ def shoot(shooter, defender):
     # get the success probability by calling the function and passing in the shot score and def score
     success_prob = shot_succ_prob(shot_score, def_score)
 
+
+
     # make a coin flip using the success probability to determine if the shot is made.
     if flip(success_prob) == 'H':
         # output for console
         print("It's good!")
+        # i read somewhere that 50% of nba made shots are assisted
+        if flip(.50) == 'H':
+            print("%s %s with the assist." % (passer.firstname, passer.lastname))
+            passer.assists = passer.assists + 1
+        else:
+            pass
+
         # the return will be used to determine how many points to give
         if shot[0] == 1 or shot[0] == 2:
+            # stat track: add to made shots
+            shooter.made_shots = shooter.made_shots + 1
+            shooter.points = shooter.points + 2
             return 2
         elif shot[0] == 3:
+            # stat track: add to made shot and made threes
+            shooter.made_shots = shooter.made_shots + 1
+            shooter.made_threes = shooter.made_threes + 1
+            shooter.points = shooter.points + 3
             return 3
         else:
             print("error exiting shot flip")
@@ -607,9 +689,9 @@ def shot_succ_prob(shot_score, def_score):
     return success_prob
 
 
-def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, home_possession, time_remaining, slow):
+def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, home_possession, time_remaining, offensive_rebound):
     #time.sleep(1)
-    time_remaining = time_remaining - abs(int(numpy.random.normal(3, 1, 1)))
+    time_remaining = time_remaining - abs(int(numpy.random.normal(5, 1, 1)))
 
     if time_remaining > 0:
         # convert the seconds to minutes format
@@ -618,25 +700,33 @@ def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awa
 
         if home_possession:
             print("Home possession")
-            # randomly select a ball_handler from the list of active home players
-            ball_handler = random.choice(list(active_home.values()))
+            # ball handler is pg unless offensive rebound
+            if offensive_rebound[0] == True:
+                ball_handler = offensive_rebound[1]
+                shotclock = 14
+            else:
+                active_players = list(active_home.values())
+                ball_handler = active_players[0]
+                shotclock = 20
+
 
             # if the time left is less than 25, then turn off the shot clock
             if time_remaining < 25:
                 pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, time_remaining, time_remaining)
             else:
                 pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign,
-                                   home_possession, 24, time_remaining)
-            time_remaining = pass_result[1]
-            # look at the away defensive assignments to select the right defender
+                                   home_possession, shotclock, time_remaining)
+            time_remaining = pass_result[2]
+
             if pass_result[0] == 1:
-                return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False, time_remaining, slow)
+                return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False, time_remaining, [False])
             else:
                 pass
 
+            # look at the away defensive assignments to select the right defender
             defender = away_def_assign[pass_result[0]]
             # call the shot function
-            shot_result = shoot(pass_result[0], defender)
+            shot_result = shoot(pass_result[0], defender, pass_result[1])
 
             # assign points based on results
             if shot_result == 2:
@@ -644,48 +734,82 @@ def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awa
             elif shot_result == 3:
                 homepoints = homepoints + 3
             elif shot_result == 0:
-                pass
+                rebound_result = rebound(pass_result[0], active_away, active_home, home_possession)
+                rebounder = rebound_result[0]
+                # stat track: add a rebound
+                rebounder.rebounds = rebounder.rebounds + 1
+                home_possession = rebound_result[1]
+
+                if home_possession:
+                    print("%s %s grabs the offensive rebound.\n" % (rebounder.firstname, rebounder.lastname))
+                    return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints,
+                                        home_possession, time_remaining, [True, rebounder])
+                else:
+                    print("%s %s grabs the rebound.\n" % (rebounder.firstname, rebounder.lastname))
+                    return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints,
+                                 home_possession, time_remaining, [False])
             else:
                 print("problem with points")
 
             print("\nScore:", awaypoints, homepoints, "\n")
 
             # recursively call the function again for the next possession
-            return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False, time_remaining, slow)
+            return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, False, time_remaining, [False])
 
         # Away possession
         else:
             print("Away possession")
-            # randomly select a ball_handler from the list of active home players
-            ball_handler = random.choice(list(active_away.values()))
+            # ball handler is pg unless offensive rebound
+            if offensive_rebound[0] == True:
+                ball_handler = offensive_rebound[1]
+                shotclock = 14
+            else:
+                active_players = list(active_away.values())
+                ball_handler = active_players[0]
+                shotclock = 24
+
             if time_remaining < 25:
                 pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign,
                                    home_possession,
                                    time_remaining, time_remaining)
             else:
                 pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
-                               24, time_remaining)
-            time_remaining = pass_result[1]
+                               shotclock, time_remaining)
+            time_remaining = pass_result[2]
             if pass_result[0] == 1:
-                return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True, time_remaining, slow)
+                return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True, time_remaining, [False])
             else:
                 pass
 
             defender = home_def_assign[pass_result[0]]
-            shot_result = shoot(pass_result[0], defender)
+            shot_result = shoot(pass_result[0], defender, pass_result[1])
 
             if shot_result == 2:
                 awaypoints = awaypoints + 2
             elif shot_result == 3:
                 awaypoints = awaypoints + 3
             elif shot_result == 0:
-                pass
+                rebound_result = rebound(pass_result[0], active_away, active_home, home_possession)
+                rebounder = rebound_result[0]
+                # stat track: add a rebound
+                rebounder.rebounds = rebounder.rebounds + 1
+                home_possession = rebound_result[1]
+
+                if home_possession:
+                    print("%s %s grabs the rebound.\n" % (rebounder.firstname, rebounder.lastname))
+                    return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints,
+                                        homepoints,
+                                        home_possession, time_remaining, [False])
+                else:
+                    print("%s %s grabs the offensive rebound.\n" % (rebounder.firstname, rebounder.lastname))
+                    return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints,
+                                 home_possession, time_remaining, [True, rebounder])
             else:
                 print("problem with points")
 
             print("\nScore:", awaypoints, homepoints, "\n")
 
-            return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True, time_remaining, slow)
+            return play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, True, time_remaining, [False])
 
     else:
         return awaypoints, homepoints
@@ -757,14 +881,14 @@ def play(slow=None):
 
     #1st quarter
     print("\nBeginning of 1st Quarter\n")
-    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False, 720, slow)
+    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, 0, 0, False, 720, [False])
     print("\nEnd of 1st Quarter")
     print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
     #2nd quarter
     #time.sleep(2)
 
     print("\nBeginning of 2nd Quarter\n")
-    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0], quarter_result[1], False, 720, slow)
+    quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0], quarter_result[1], False, 720, [False])
     print("\nEnd of 2nd Quarter")
     print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
 
@@ -772,7 +896,7 @@ def play(slow=None):
     #time.sleep(2)
     print("\nBeginning of 3rd Quarter\n")
     quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0],
-                                  quarter_result[1], False, 720, slow)
+                                  quarter_result[1], False, 720, [False])
     print("\nEnd of 3rd Quarter")
     print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
 
@@ -780,7 +904,7 @@ def play(slow=None):
     #time.sleep(2)
     print("\nBeginning of 4th Quarter\n")
     quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0],
-                                  quarter_result[1], False, 720, slow)
+                                  quarter_result[1], False, 720, [False])
     print("\nEnd of 4th Quarter")
     print("Score: %d %d\n" % (quarter_result[0], quarter_result[1]))
 
@@ -790,7 +914,7 @@ def play(slow=None):
         if quarter_result[0] == quarter_result[1]:
             print("\nBeginning of OT%d\n" % overtime_no)
             quarter_result = play_quarter(active_away, active_home, away_def_assign, home_def_assign, quarter_result[0],
-                                          quarter_result[1], False, 720, slow)
+                                          quarter_result[1], False, 720, [False])
             continue
         else:
             break
@@ -832,8 +956,29 @@ def play(slow=None):
         hometeam_sheet["C%d" % x] = "W"
     workbook.save(filename=filename)
 
+    print("%s stats\n" % away_name)
+    # let's try printing some stats
+    for x in away_team:
+        print("%s %s's stats" % (x.firstname, x.lastname))
+        print("Points: %d" % x.points)
+        print("FG: %d/%d" % (x.made_shots, x.shot_attempts))
+        print("3 FG: %d/%d" % (x.made_threes, x.three_attempts))
+        print("Assist: %d" % x.assists)
+        print("Rebounds: %d\n" % x.rebounds)
 
 
+    print("\n")
+    print("%s stats\n" % home_name)
+
+    for x in home_team:
+        print("%s %s's stats" % (x.firstname, x.lastname))
+        print("Points: %d" % x.points)
+        print("FG: %d/%d" % (x.made_shots, x.shot_attempts))
+        print("3 FG: %d/%d" % (x.made_threes, x.three_attempts))
+        print("Assists: %d" % x.assists)
+        print("Rebounds: %d\n" % x.rebounds)
+
+    print("\n")
     # This section for saving stats in a game xlsx
     #if not path.exists('Game_stats.xlsx'):
        # workbook = Workbook()
@@ -873,7 +1018,7 @@ def main():
             print("Current Teams:")
             show_teams()
             team = load_team()
-            print_team(team)
+            print_team(team[0])
             print("\n")
             continue
         elif selection == "5":
@@ -888,12 +1033,6 @@ def main():
         else:
             print("Invalid input, try again.\n")
             continue
-
-
-
-
-
-
 
 
 # Press the green button in the gutter to run the script.
