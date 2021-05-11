@@ -641,55 +641,55 @@ def shoot(shooter, defender, passer):
 def shot_succ_prob(shot_score, def_score):
 
     if shot_score == 0 and def_score == 0:
-        success_prob = 0.30
+        success_prob = random.uniform(0.00, 0.40)
     elif shot_score == 0 and def_score == 1:
-        success_prob = 0.25
+        success_prob = random.uniform(0.00, 0.30)
     elif shot_score == 0 and def_score == 2:
-        success_prob = 0.20
+        success_prob = random.uniform(0.00, 0.20)
     elif shot_score == 0 and def_score == 3:
-        success_prob = 0.15
+        success_prob = random.uniform(0.00, 0.10)
     elif shot_score == 0 and def_score == 4:
-        success_prob = 0.10
+        success_prob = random.uniform(0.10, 0.60)
     elif shot_score == 1 and def_score == 0:
-        success_prob = 0.35
+        success_prob = random.uniform(0.10, 0.60)
     elif shot_score == 1 and def_score == 1:
-        success_prob = 0.30
+        success_prob = random.uniform(0.10, 0.50)
     elif shot_score == 1 and def_score == 2:
-        success_prob = 0.25
+        success_prob = random.uniform(0.10, 0.40)
     elif shot_score == 1 and def_score == 3:
-        success_prob = 0.20
+        success_prob = random.uniform(0.10, 0.30)
     elif shot_score == 1 and def_score == 4:
-        success_prob = 0.15
+        success_prob = random.uniform(0.10, 0.20)
     elif shot_score == 2 and def_score == 0:
-        success_prob = 0.40
+        success_prob = random.uniform(0.20, 0.70)
     elif shot_score == 2 and def_score == 1:
-        success_prob = 0.35
+        success_prob = random.uniform(0.20, 0.60)
     elif shot_score == 2 and def_score == 2:
-        success_prob = 0.30
+        success_prob = random.uniform(0.20, 0.50)
     elif shot_score == 2 and def_score == 3:
-        success_prob = 0.25
+        success_prob = random.uniform(0.20, 0.40)
     elif shot_score == 2 and def_score == 4:
-        success_prob = 0.20
+        success_prob = random.uniform(0.20, 0.30)
     elif shot_score == 3 and def_score == 0:
-        success_prob = 0.45
+        success_prob = random.uniform(0.30, 0.80)
     elif shot_score == 3 and def_score == 1:
-        success_prob = 0.40
+        success_prob = random.uniform(0.30, 0.70)
     elif shot_score == 3 and def_score == 2:
-        success_prob = 0.35
+        success_prob = random.uniform(0.30, 0.60)
     elif shot_score == 3 and def_score == 3:
-        success_prob = 0.30
+        success_prob = random.uniform(0.30, 0.50)
     elif shot_score == 3 and def_score == 4:
-        success_prob = 0.25
+        success_prob = random.uniform(0.30, 0.40)
     elif shot_score == 4 and def_score == 0:
-        success_prob = 0.60
+        success_prob = random.uniform(0.40, 0.90)
     elif shot_score == 4 and def_score == 1:
-        success_prob = 0.55
+        success_prob = random.uniform(0.40, 0.80)
     elif shot_score == 4 and def_score == 2:
-        success_prob = 0.50
+        success_prob = random.uniform(0.40, 0.70)
     elif shot_score == 4 and def_score == 3:
-        success_prob = 0.45
+        success_prob = random.uniform(0.40, 0.60)
     elif shot_score == 4 and def_score == 4:
-        success_prob = 0.40
+        success_prob = random.uniform(0.40, 0.50)
     else:
         print("problem with success prob")
 
