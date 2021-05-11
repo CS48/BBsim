@@ -341,9 +341,9 @@ def show_teams():
 # consider the shot clock running down. This will be cool to code up.
 
 # alright, so i'm just gonna try something here and see how it works
-def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, homepossession, shot_clock, time_remaining):
+def Pass(ball_handler, previous, active_away, active_home, away_def_assign, home_def_assign, homepossession, shot_clock, time_remaining):
     pass_chance = 0
-    passer = ball_handler
+    passer = previous
     if homepossession:
         defender = away_def_assign[ball_handler]
     else:
@@ -355,7 +355,7 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
     n = abs(handler_shooting_avg - def_defense_avg)
 
     if 0 < shot_clock <= 4:
-        print("The shot is clock is running down! Shot Clock: %d" % shot_clock)
+        #print("The shot is clock is running down! Shot Clock: %d" % shot_clock)
         time_remaining = time_remaining - (24 - shot_clock)
         return ball_handler, passer, time_remaining
     elif shot_clock < 0:
@@ -364,9 +364,6 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
         return 1, None, time_remaining
     else:
         pass
-
-
-
 
     if handler_shooting_avg > def_defense_avg:
         if n >= 50:
@@ -378,6 +375,12 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
     else:
         pass_chance = 0.75
 
+    # noticed that pgs are taking wayyyyy too many shots
+    if ball_handler.position == "PG":
+        pass_chance = .85
+    else:
+        pass
+
     if flip(pass_chance) == 'H':
         if homepossession:
             while True:
@@ -387,9 +390,9 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
                 else:
                     break
             shot_clock = shot_clock - abs(int(numpy.random.normal(5, 2, 1)))
-            print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
-                                                          ,target.lastname, shot_clock))
-            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, True, shot_clock, time_remaining)
+            #print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
+            #                                              ,target.lastname, shot_clock))
+            return Pass(target, ball_handler, active_away, active_home, away_def_assign, home_def_assign, True, shot_clock, time_remaining)
         else:
             while True:
                 target = random.choice(list(active_away.values()))
@@ -398,9 +401,9 @@ def Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assig
                 else:
                     break
             shot_clock = shot_clock - abs(int(numpy.random.normal(5, 2, 1)))
-            print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
-            ,target.lastname, shot_clock))
-            return Pass(target, active_away, active_home, away_def_assign, home_def_assign, False, shot_clock, time_remaining)
+            #print("%s %s passes to %s %s. Shot Clock: %d" % (ball_handler.firstname, ball_handler.lastname, target.firstname
+            #,target.lastname, shot_clock))
+            return Pass(target, ball_handler, active_away, active_home, away_def_assign, home_def_assign, False, shot_clock, time_remaining)
     else:
         time_remaining = time_remaining - (24 - shot_clock)
         return ball_handler, passer, time_remaining
@@ -604,11 +607,15 @@ def shoot(shooter, defender, passer):
         # output for console
         print("It's good!")
         # i read somewhere that 50% of nba made shots are assisted
-        if flip(.50) == 'H':
-            print("%s %s with the assist." % (passer.firstname, passer.lastname))
-            passer.assists = passer.assists + 1
-        else:
+        if passer is None:
             pass
+        else:
+            if flip(.50) == 'H':
+                print("%s %s with the assist." % (passer.firstname, passer.lastname))
+                passer.assists = passer.assists + 1
+            else:
+                pass
+
 
         # the return will be used to determine how many points to give
         if shot[0] == 1 or shot[0] == 2:
@@ -691,7 +698,7 @@ def shot_succ_prob(shot_score, def_score):
 
 def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awaypoints, homepoints, home_possession, time_remaining, offensive_rebound):
     #time.sleep(1)
-    time_remaining = time_remaining - abs(int(numpy.random.normal(5, 1, 1)))
+    time_remaining = time_remaining - abs(int(numpy.random.normal(3, 1, 1)))
 
     if time_remaining > 0:
         # convert the seconds to minutes format
@@ -712,9 +719,9 @@ def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awa
 
             # if the time left is less than 25, then turn off the shot clock
             if time_remaining < 25:
-                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession, time_remaining, time_remaining)
+                pass_result = Pass(ball_handler, None, active_away, active_home, away_def_assign, home_def_assign, home_possession, time_remaining, time_remaining)
             else:
-                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign,
+                pass_result = Pass(ball_handler, None, active_away, active_home, away_def_assign, home_def_assign,
                                    home_possession, shotclock, time_remaining)
             time_remaining = pass_result[2]
 
@@ -769,11 +776,11 @@ def play_quarter(active_away, active_home, away_def_assign, home_def_assign, awa
                 shotclock = 24
 
             if time_remaining < 25:
-                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign,
+                pass_result = Pass(ball_handler, None, active_away, active_home, away_def_assign, home_def_assign,
                                    home_possession,
                                    time_remaining, time_remaining)
             else:
-                pass_result = Pass(ball_handler, active_away, active_home, away_def_assign, home_def_assign, home_possession,
+                pass_result = Pass(ball_handler, None, active_away, active_home, away_def_assign, home_def_assign, home_possession,
                                shotclock, time_remaining)
             time_remaining = pass_result[2]
             if pass_result[0] == 1:
