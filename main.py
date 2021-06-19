@@ -1,4 +1,4 @@
-import random, json, numpy, os.path, time
+import random, json, numpy, os.path, time, tkinter
 from os import path
 from openpyxl import Workbook, load_workbook
 
@@ -18,6 +18,8 @@ last_name_data = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "D
                   "White", "Lopez", "Lee", "Gonzalez", "Harris", "Clark", "Lewis", "Robinson", "Walker", "Perez",
                   "Hall", "Young", "Allen", "Sanchez", "Wright", "King", "Scott", "Green", "Baker", "Adams", "Nelson",
                   "Hill", "Ramirez", "Campbell", "Mitchell", "Roberts"]
+team_data = ["Atlanta", "Boston", "Charlotte", "Chicago", "Denver", "Detroit", "Houston", "Indiana", "Los Angeles",
+             "Miami", "Minnesota"]
 
 # for making a coin flip based on probability p. Such as an attack that has a 30% probability to work
 def flip(p):
@@ -134,7 +136,7 @@ class Player:
 
 # creates a new sheet in the Teams spreadsheet and generates some random players for that team by entering
 # data into the cells. This spreadsheet will later be read to create player objects for simming
-def create_team():
+def create_team(team_name):
     # checks to see if the "Teams" file exists. Creates one if it doesn't
     if path.exists("Teams.xlsx"):
         pass
@@ -146,19 +148,7 @@ def create_team():
     filename = "Teams.xlsx"
     workbook = load_workbook(filename=filename)
 
-    # asks for a name for the new team, and puts some limitations on the input.
-    while True:
-        team_name = input("Please enter a team name: ")
-        if len(team_name) > 10:
-            print("Sorry, the limit is 10 characters. Try again.")
-            continue
-        elif len(team_name) < 1:
-            print("You didn't enter anything. Try again")
-            continue
-        else:
-            # we're happy with the value given.
-            # we're ready to exit the loop.
-            break
+
     # the team name ends up as the name of the sheet within the Teams file
     team_sheet = workbook.create_sheet(team_name)
 
@@ -1150,13 +1140,49 @@ def play(slow=None):
 
 
 
+def create_save():
 
+    x = input("Save Name?: ")
 
+    current_directory = os.getcwd()
+    final_directory = os.path.join(current_directory, r'%s' % x)
+    if not os.path.exists(final_directory):
+        os.makedirs(final_directory)
+        print("Directory Created: %s" % x)
+
+    os.chdir(final_directory)
+    print("Entered Directory: %s\n" % x)
+
+    for y in team_data:
+        create_team(y)
+
+def load_save():
+    current_directory = os.getcwd()
+    for file in os.listdir(current_directory):
+        d = os.path.join(current_directory, file)
+        if os.path.isdir(d):
+            print(d)
+
+    x = input("Choose save: ")
+    final_directory = os.path.join(current_directory, r'%s' % x)
+    os.chdir(final_directory)
+    print("Entered Directory: %s\n" % x)
 
 def main():
     # This is effectively a console based menu that keeps running until you exit it
     # the menu options are selected by entering a number that corresponds with that option.
     # Run main() and give it a try.
+
+    print("Menu:\n"
+          "1. Create a Save\n"
+          "2. Load a Save")
+
+    selection = input("Input a number:")
+    if selection == "1":
+        create_save()
+    elif selection == "2":
+        load_save()
+
     while True:
         print("Menu:\n"
               "1. Generate a Team\n"
